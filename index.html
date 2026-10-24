@@ -1,0 +1,339 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PHANTOM AI</title>
+<style>
+:root {
+  color-scheme: dark;
+  --bg: #050914;
+  --panel: #0b1424;
+  --cyan: #42e8ff;
+  --text: #eaf7ff;
+  --muted: #91a8bd;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: radial-gradient(circle at top, #10253c, var(--bg) 55%);
+  color: var(--text);
+  font: 16px Arial, sans-serif;
+  min-height: 100vh;
+}
+header {
+  padding: 22px 16px;
+  border-bottom: 1px solid #244052;
+  text-align: center;
+}
+.logo {
+  color: var(--cyan);
+  font-size: 30px;
+  font-weight: 900;
+  letter-spacing: 6px;
+  text-shadow: 0 0 18px #00cfff66;
+}
+header p { color: var(--muted); margin-bottom: 0; }
+main {
+  width: min(850px, 100%);
+  margin: auto;
+  padding: 18px;
+}
+.panel {
+  background: #0b1424eF;
+  border: 1px solid #244052;
+  border-radius: 16px;
+  padding: 17px;
+  margin-bottom: 16px;
+  box-shadow: 0 8px 30px #0004;
+}
+h2 { color: var(--cyan); font-size: 18px; }
+#chat {
+  min-height: 170px;
+  max-height: 340px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.msg {
+  padding: 12px;
+  border-radius: 12px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+}
+.user { background: #123247; align-self: flex-end; max-width: 90%; }
+.bot { background: #101f31; border: 1px solid #233b4d; }
+form { display: flex; gap: 8px; margin-top: 12px; }
+input, textarea {
+  width: 100%;
+  min-width: 0;
+  padding: 13px;
+  border-radius: 10px;
+  border: 1px solid #34536a;
+  background: #050c18;
+  color: white;
+  font: inherit;
+}
+textarea { resize: vertical; }
+button {
+  padding: 12px 15px;
+  border: 1px solid #42e8ff88;
+  border-radius: 10px;
+  background: #103044;
+  color: var(--cyan);
+  font-weight: bold;
+  cursor: pointer;
+}
+button:hover { background: #17435a; }
+.actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+.small { color: var(--muted); font-size: 13px; line-height: 1.5; }
+.candidate {
+  padding: 13px;
+  border: 1px solid #294358;
+  border-radius: 12px;
+  margin-top: 10px;
+  background: #081321;
+}
+.candidate h3 { margin: 0 0 7px; font-size: 16px; }
+.candidate p { color: #c1d4e4; line-height: 1.5; margin: 6px 0; }
+.score { color: var(--cyan); font-size: 13px; }
+footer { text-align: center; padding: 20px; color: var(--muted); font-size: 12px; }
+@media (max-width: 520px) {
+  main { padding: 11px; }
+  .panel { padding: 13px; }
+  form { flex-direction: column; }
+  form button { width: 100%; }
+}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">PHANTOM</div>
+  <p>Personal Intelligence Interface · Prototype 0.1</p>
+</header>
+
+<main>
+  <section class="panel">
+    <h2>◈ Neural Chat</h2>
+    <div id="chat" aria-live="polite">
+      <div class="msg bot">PHANTOM prototype online.\n\nI can demonstrate chat responses and explore multiple approaches to a goal. This version uses local rules, not a live AI model.</div>
+    </div>
+    <form id="chatForm">
+      <input id="message" placeholder="Ask PHANTOM something..." autocomplete="off" required>
+      <button type="submit">Send ↗</button>
+    </form>
+    <div class="actions">
+      <button id="voiceBtn" type="button">🎙 Voice input</button>
+      <button id="speakBtn" type="button">🔊 Voice: Off</button>
+      <button id="clearBtn" type="button">Clear chat</button>
+    </div>
+    <p class="small">Voice input depends on browser support and microphone permission.</p>
+  </section>
+
+  <section class="panel">
+    <h2>◈ Multi-Possibility Engine</h2>
+    <p class="small">Enter a goal to explore different strategies, trade-offs and first experiments.</p>
+    <textarea id="goal" rows="3" placeholder="Example: How can I build an AI assistant that helps me study and invent things?"></textarea>
+    <div class="actions">
+      <button id="exploreBtn" type="button">Explore possibilities</button>
+    </div>
+    <div id="results"></div>
+  </section>
+
+  <section class="panel">
+    <h2>◈ System status</h2>
+    <p>Interface: <span style="color:#42e8ff">ONLINE</span></p>
+    <p>Idea engine: <span style="color:#42e8ff">LOCAL DEMO</span></p>
+    <p>Live AI connection: <span style="color:#ffcc75">NOT CONNECTED</span></p>
+    <p class="small">This prototype runs in your browser. It does not scan networks, access private data, or connect to external AI services.</p>
+  </section>
+</main>
+
+<footer>PHANTOM · Built as a free personal project</footer>
+
+<script>
+const $ = id => document.getElementById(id);
+let voiceOn = false;
+
+function addMessage(text, who) {
+  const el = document.createElement("div");
+  el.className = "msg " + who;
+  el.textContent = text;
+  $("chat").appendChild(el);
+  $("chat").scrollTop = $("chat").scrollHeight;
+}
+
+function replyTo(text) {
+  const s = text.toLowerCase();
+  if (s.includes("hello") || s.includes("hi")) {
+    return "Hello! PHANTOM's local prototype is ready. What would you like to explore?";
+  }
+  if (s.includes("study") || s.includes("learn")) {
+    return "Try this study loop: 1) Choose one small topic. 2) Learn the core idea. 3) Solve practice questions. 4) Review mistakes. 5) Explain it in your own words.\n\nI can generate alternative study strategies in the Multi-Possibility Engine below.";
+  }
+  if (s.includes("idea") || s.includes("invent")) {
+    return "Start with a real problem, generate several possible solutions, compare cost and difficulty, then test the smallest useful version. Try the Multi-Possibility Engine below.";
+  }
+  if (s.includes("who are you") || s.includes("your name")) {
+    return "I'm PHANTOM, a browser-based assistant prototype. My current responses are rule-based, not generated by a live AI model.";
+  }
+  return "I understand the topic you entered, but this prototype has no live AI brain yet. Use the Multi-Possibility Engine to compare strategies, or later connect a real model through a secure backend.";
+}
+
+$("chatForm").addEventListener("submit", e => {
+  e.preventDefault();
+  const text = $("message").value.trim();
+  if (!text) return;
+  addMessage(text, "user");
+  $("message").value = "";
+  const answer = replyTo(text);
+  addMessage(answer, "bot");
+  if (voiceOn && "speechSynthesis" in window) {
+    speechSynthesis.cancel();
+    speechSynthesis.speak(new SpeechSynthesisUtterance(answer));
+  }
+});
+
+$("clearBtn").addEventListener("click", () => {
+  $("chat").replaceChildren();
+  addMessage("Chat cleared. PHANTOM is ready.", "bot");
+});
+
+$("speakBtn").addEventListener("click", () => {
+  voiceOn = !voiceOn;
+  $("speakBtn").textContent = voiceOn ? "🔊 Voice: On" : "🔊 Voice: Off";
+  if (!voiceOn && "speechSynthesis" in window) speechSynthesis.cancel();
+});
+
+$("voiceBtn").addEventListener("click", () => {
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SpeechRecognition) {
+    addMessage("Voice input is not supported in this browser. Try typing your message instead.", "bot");
+    return;
+  }
+  const recognition = new SpeechRecognition();
+  recognition.lang = "en-IN";
+  recognition.onresult = event => {
+    $("message").value = event.results[0][0].transcript;
+    $("message").focus();
+  };
+  recognition.onerror = () => addMessage("Microphone input failed. Check browser permission or type instead.", "bot");
+  recognition.start();
+});
+
+const strategies = [
+  {
+    name: "1. Simplest useful version",
+    score: 95,
+    method: "Build the smallest working version first, then improve one feature at a time.",
+    risk: "It may feel basic until more capabilities are added.",
+    next: "Choose one core feature, build it, and test it on your tablet."
+  },
+  {
+    name: "2. Research before building",
+    score: 87,
+    method: "Study existing tools and identify a gap your project can fill.",
+    risk: "Too much research can delay the first prototype.",
+    next: "Compare three existing solutions and list one missing feature in each."
+  },
+  {
+    name: "3. Combine unexpected ideas",
+    score: 84,
+    method: "Combine two useful concepts to create a different approach.",
+    risk: "The combination may become unnecessarily complicated.",
+    next: "Combine a study planner with a branching idea generator and sketch the workflow."
+  },
+  {
+    name: "4. Experiment and iterate",
+    score: 91,
+    method: "Create a small test, measure what happens, and improve from evidence.",
+    risk: "A poorly chosen test may not answer the main question.",
+    next: "Write one measurable success condition and run a small test."
+  },
+  {
+    name: "5. Reverse a constraint",
+    score: 78,
+    method: "Ask what changes if the biggest limitation becomes a design rule.",
+    risk: "Some constraints cannot be removed by changing the approach.",
+    next: "List your three biggest limits and design around the most important one."
+  },
+  {
+    name: "6. Automate repeated work",
+    score: 82,
+    method: "Identify a repetitive task and automate a safe, predictable part of it.",
+    risk: "Automation adds setup work and needs testing.",
+    next: "Find one task you repeat often and write down its steps."
+  }
+];
+
+function renderStrategies(goal) {
+  const results = $("results");
+  results.replaceChildren();
+
+  const intro = document.createElement("p");
+  intro.className = "small";
+  intro.textContent = "Goal: " + goal + "\nScores are heuristic estimates for organizing ideas, not measured probabilities.";
+  results.appendChild(intro);
+
+  strategies.forEach(item => {
+    const card = document.createElement("article");
+    card.className = "candidate";
+
+    const title = document.createElement("h3");
+    title.textContent = item.name;
+    card.appendChild(title);
+
+    const score = document.createElement("div");
+    score.className = "score";
+    score.textContent = "Heuristic fit score: " + item.score + "/100";
+    card.appendChild(score);
+
+    const method = document.createElement("p");
+    method.textContent = item.method;
+    card.appendChild(method);
+
+    const risk = document.createElement("p");
+    risk.textContent = "Trade-off: " + item.risk;
+    card.appendChild(risk);
+
+    const button = document.createElement("button");
+    button.type = "button";
+    button.textContent = "Show first experiment";
+    card.appendChild(button);
+
+    let expanded = false;
+    let detail = null;
+    button.addEventListener("click", () => {
+      if (expanded) {
+        detail.remove();
+        detail = null;
+        button.textContent = "Show first experiment";
+      } else {
+        detail = document.createElement("p");
+        detail.textContent = "First experiment: " + item.next;
+        card.appendChild(detail);
+        button.textContent = "Hide experiment";
+      }
+      expanded = !expanded;
+    });
+
+    results.appendChild(card);
+  });
+}
+
+$("exploreBtn").addEventListener("click", () => {
+  const goal = $("goal").value.trim();
+  if (!goal) {
+    $("goal").focus();
+    $("goal").placeholder = "Enter a goal first, then tap Explore possibilities.";
+    return;
+  }
+  renderStrategies(goal);
+});
+
+$("goal").value = "How can I build an AI assistant that helps me study and invent things?";
+</script>
+</body>
+</html>
